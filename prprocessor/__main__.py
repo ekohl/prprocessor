@@ -218,6 +218,43 @@ async def run_pull_request_check(pull_request: Mapping, check_run=None) -> None:
     )
 
 
+async def set_pr_on_issues(pull_request: Mapping, issues: Iterable[Issue]):
+    pr_url = pull_request['html_url']
+    assignee = pull_request['user']['login']  # TODO: convert Github username to Redmine ID
+    is_cherry_pick = False  # TODO
+    github_field_id = None  # TODO
+    triaged_field_id = None  # TODO
+    ready_for_testing_id = None  #TODO
+
+    for issue in issues:
+        # TODO: is a rejected issue not invalid?
+        if issue.status != 'Rejected':
+            updates = {}
+            if issue.backlog or issue.recycle_bin or not issue.fixed_version_id:
+                field = issue.custom_fields.get(triaged_field_id)
+                if field.value is True:  # TODO does the API return a boolean?
+                    updates['custom_fields'] = [{'id': field.id, 'value': False}]
+
+                updates['fixed_version_id'] = None
+
+            if not is_cherry_pick:
+                field = issue.custom_fields.get(github_field_id)
+                if pr_url not in field.value:
+                    if 'custom_fields' not in updates:
+                        updates['custom_fields'] = []
+                    new_value = field.value + [pr_url]
+                    updates['custom_fields'].append({'id': field.id, 'value': new_value})
+
+            if not issue.assigned_to_id and issue.assigned_to_id != assignee:
+                updates['assigned_to_id'] = assignee
+
+            if issue.status_id != 'Closed' and issue.status_id != ready_for_testing_id:  # TODO closed/resolved/... to IDs
+                updates['status_id'] = ready_for_testing_id
+
+            if updates:
+                issue.save(**updates)
+
+
 @process_event_actions('pull_request', {'opened', 'ready_for_review', 'reopened', 'synchronize'})
 @process_webhook_payload
 async def on_pr_modified(*, pull_request: Mapping, **other) -> None:  # pylint: disable=unused-argument
