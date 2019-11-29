@@ -83,7 +83,7 @@ def summarize(summary: Mapping[str, Iterable], show_headers: bool) -> Generator[
                 yield f'* {line}'
 
 
-async def get_commits_from_pull_request(pull_request) -> AsyncGenerator[Commit, None]:
+async def get_commits_from_pull_request(pull_request: Mapping) -> AsyncGenerator[Commit, None]:
     github_api = RUNTIME_CONTEXT.app_installation_client
     items = await github_api.getitem(pull_request['commits_url'])
     for item in items:
@@ -98,7 +98,7 @@ async def get_commits_from_pull_request(pull_request) -> AsyncGenerator[Commit, 
         yield commit
 
 
-async def set_check_in_progress(pull_request, check_run=None):
+async def set_check_in_progress(pull_request: Mapping, check_run=None):
     github_api = RUNTIME_CONTEXT.app_installation_client
 
     data = {
@@ -143,7 +143,7 @@ def format_details(invalid_issues: Iterable[Issue], correct_project: Project) ->
     return '\n'.join(text)
 
 
-async def get_issues_from_pr(pull_request) -> Tuple[IssueValidation, Collection]:
+async def get_issues_from_pr(pull_request: Mapping) -> Tuple[IssueValidation, Collection]:
     config = get_config(pull_request['base']['repo']['full_name'])
 
     issue_ids = set()
@@ -158,7 +158,7 @@ async def get_issues_from_pr(pull_request) -> Tuple[IssueValidation, Collection]
     return verify_issues(config, issue_ids), invalid_commits
 
 
-async def run_pull_request_check(pull_request, check_run=None) -> None:
+async def run_pull_request_check(pull_request: Mapping, check_run=None) -> None:
     github_api = RUNTIME_CONTEXT.app_installation_client
 
     check_run = await set_check_in_progress(pull_request, check_run)
